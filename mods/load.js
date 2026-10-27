@@ -23,6 +23,11 @@
   'eras',
   'civilization',
   'recorder',
+  'social',
+  'dilemmas',
+  'saveload',
+  'audio',
+  'particles',
   // ai_leader is browser-only — it guards itself with typeof window check
   // 'ai_leader',
 ].forEach(m => require('./' + m + '.js'));

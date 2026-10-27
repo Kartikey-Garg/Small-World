@@ -685,6 +685,7 @@
     stage.insertBefore(canvas, stage.firstChild);
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.setClearColor(0x000000, 0);
     scene = new T.Scene(); camera = new T.PerspectiveCamera(38, 1.6, 0.5, 400);
+    view.scene = scene;
     makeTextures();
     hemi = new T.HemisphereLight(0xd2e8ff, 0x5d7550, 0.9); scene.add(hemi);
     sun = new T.DirectionalLight(0xfff2d6, 1.1); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);

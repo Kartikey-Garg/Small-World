@@ -540,12 +540,63 @@
 
   function setSpeed(s) {
     speed = s; paused = false; $('b-pause').textContent = 'Pause';
+    window.SmallWorldSpeed = s;
     document.querySelectorAll('.spd').forEach(b => b.classList.toggle('on', +b.dataset.s === s));
   }
   document.querySelectorAll('.spd').forEach(b => b.addEventListener('click', () => setSpeed(+b.dataset.s)));
   $('b-pause').addEventListener('click', () => { paused = !paused; $('b-pause').textContent = paused ? 'Resume' : 'Pause'; });
   $('b-new').addEventListener('click', newWorld);
   $('b-again').addEventListener('click', newWorld);
+
+  const bSound = $('b-sound');
+  if (bSound) {
+    const updateSoundBtn = () => {
+      const isMuted = API.audio && API.audio.isMuted();
+      bSound.textContent = isMuted ? '🔇' : '🔊';
+      bSound.classList.toggle('muted', isMuted);
+    };
+    updateSoundBtn();
+    bSound.addEventListener('click', () => {
+      if (API.audio) {
+        API.audio.ensure();
+        API.audio.toggleMute();
+        updateSoundBtn();
+      }
+    });
+  }
+
+  const bSave = $('b-save');
+  if (bSave) {
+    bSave.addEventListener('click', () => {
+      if (API.saveLoad && world) {
+        const ok = API.saveLoad.saveLocal(world);
+        if (ok) {
+          bSave.textContent = 'Saved! ✓';
+          setTimeout(() => bSave.textContent = 'Save', 1500);
+        }
+      }
+    });
+  }
+
+  const bLoad = $('b-load');
+  if (bLoad) {
+    bLoad.addEventListener('click', () => {
+      if (API.saveLoad) {
+        const loaded = API.saveLoad.loadLocal();
+        if (loaded) {
+          world = loaded;
+          selId = null; overShown = false; lastLogKey = '';
+          $('over').classList.add('hidden');
+          $('banner').style.display = 'none';
+          renderLog(true);
+          bLoad.textContent = 'Loaded! ✓';
+          setTimeout(() => bLoad.textContent = 'Load', 1500);
+        } else {
+          alert('No saved game found in browser storage.');
+        }
+      }
+    });
+  }
   window.addEventListener('keydown', e => {
     const inInput = document.activeElement && document.activeElement.tagName === 'INPUT';
     if (!inInput && e.code === 'Space') { e.preventDefault(); $('b-pause').click(); }

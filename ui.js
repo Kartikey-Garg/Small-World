@@ -362,7 +362,7 @@
 
   // ------------------------------------------------------------------ HUD
   const el = {};
-  ['s-day', 's-season', 's-time', 's-pop', 's-food', 's-wood', 's-fish', 's-best'].forEach(k => el[k] = $(k));
+  ['s-day', 's-season', 's-time', 's-pop', 's-food', 's-wood', 's-fish', 's-best', 's-era', 's-tech'].forEach(k => el[k] = $(k));
   const hudEls = {};
   // ---- generic side panels contributed by mods: API.panels = [{id,title,html(world,ui)}]
   const panelEls = {};
@@ -421,6 +421,18 @@
     el['s-wood'].textContent = Math.floor(world.stock.wood);
     el['s-fish'].textContent = Math.round(world.fish);
     el['s-best'].textContent = Math.max(best, world.day) + ' d';
+    if (el['s-era'] && API.eras) {
+      const cur = API.eras.current(world);
+      el['s-era'].textContent = cur ? cur.name : 'Stone Age';
+    }
+    if (el['s-tech'] && API.eras) {
+      const st = API.eras.state(world);
+      const cur = API.eras.current(world);
+      if (st && cur) {
+        const knownInEra = (cur.techs || []).filter(t => API.eras.has(world, t.id)).length;
+        el['s-tech'].textContent = `${knownInEra} / ${cur.techs.length}`;
+      }
+    }
     const bn = $('banner');
     const n = world.agents.length, starving = world.agents.filter(a => a.satiety <= 0).length;
     let msg = null;

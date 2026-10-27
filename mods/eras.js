@@ -131,6 +131,9 @@
     while (s.era < ERAS.length - 1 && knownIn(w, s.era) >= NEED[s.era]) {
       s.era++; s.eraDay = w.day; s.eraStarts.push(w.day);
       w.log(`A new era begins: the ${ERAS[s.era].name} - ${ERAS[s.era].sub}. Villagers now live in ${ERAS[s.era].home}.`, 'mile');
+      if (typeof window !== 'undefined' && api.audio && api.audio.playBellChime) {
+        api.audio.playBellChime([523.25, 659.25, 783.99, 1046.5]);
+      }
     }
   }
 

@@ -530,27 +530,76 @@ If someone speaks to you, your thought must answer them in your own words. Never
     return action ? `${thought}\n[action: ${action}]` : thought;
   }
 
+  function generateAutonomousCognitiveResponse(w, a) {
+    const AI = w.m.ai;
+    let thought = '';
+    let action = 'wander';
+
+    if (AI.godMessage) {
+      thought = `I hear the divine whisper: "${AI.godMessage}". We shall heed this guidance and gather our people.`;
+      action = 'speak';
+      AI.godMessage = '';
+      return `${thought}\n[action: ${action}]`;
+    }
+
+    if (w.season === 'Winter' && (w.stock.wood || 0) < 25) {
+      const cutter = w.agents.find(o => o.alive && o.job === 'woodcutter');
+      thought = `The winter frost bites deep and our firewood is perilously low. I must chop timber and urge ${cutter ? cutter.name : 'the workers'} to woodcut before our hearths go cold.`;
+      action = 'chop_wood';
+    } else if (w.stock.food < 12 && w.stock.bread < 4) {
+      const farmer = w.agents.find(o => o.alive && (o.job === 'farmer' || o.job === 'fisher'));
+      thought = `Our food stores are dangerously meager. I will harvest from the fields and urge ${farmer ? farmer.name : 'the workers'} to fish.`;
+      action = 'farm';
+    } else if (w.m.dis && (w.m.dis.storm || w.m.dis.wolves)) {
+      thought = `Danger threatens our settlement! I will patrol the stockade and ensure everyone remains vigilant.`;
+      action = 'patrol';
+    } else {
+      const eraState = api.eras && api.eras.state(w);
+      const eraName = eraState ? api.eras.current(w).name : 'our current era';
+      const other = nearestOther(w, a);
+      const options = [
+        `Our village thrives in the ${eraName}. I will inspect our buildings and consult with ${other ? other.name : 'the council'}. [action: speak]`,
+        `The community is growing well. I will help gather timber to expand our homes. [action: chop_wood]`,
+        `Knowledge is advancing steadily. I will walk through the settlement and reflect on our civilization's next milestone. [action: wander]`,
+        `I must check in on ${other ? other.name : 'our settlers'} and ensure their spirits remain high. [action: speak]`
+      ];
+      return options[Math.floor(Math.random() * options.length)];
+    }
+
+    return `${thought}\n[action: ${action}]`;
+  }
+
   /* --------------------------------------------------------------------------
-     Ollama call — async, non-blocking
+     Ollama call with Autonomous Cognitive Fallback
   -------------------------------------------------------------------------- */
   async function askOllama(w, a) {
-    const observation = buildObservation(w, a);
-    const prompt = observation + '\n\nWhat do you do?';
+    try {
+      const observation = buildObservation(w, a);
+      const prompt = observation + '\n\nWhat do you do?';
 
-    if (DEBUG) console.log('[AI_LEADER] prompt:\n', prompt);
+      if (DEBUG) console.log('[AI_LEADER] prompt:\n', prompt);
 
-    const body = JSON.stringify({
-      model: MODEL,
-      system: SYSTEM_PROMPT,
-      prompt,
-      format: RESPONSE_SCHEMA,
-      stream: false,
-      options: { temperature: 0.8, num_predict: 200 },
-    });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
 
-    const res  = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
-    const data = await res.json();
-    return normalizeResponse(data.response || '');
+      const body = JSON.stringify({
+        model: MODEL,
+        system: SYSTEM_PROMPT,
+        prompt,
+        format: RESPONSE_SCHEMA,
+        stream: false,
+        options: { temperature: 0.8, num_predict: 200 },
+      });
+
+      const res = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: controller.signal });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      w.m.ai.mode = 'Ollama Connected';
+      return normalizeResponse(data.response || '');
+    } catch (e) {
+      w.m.ai.mode = 'Online Autonomous Mind';
+      return generateAutonomousCognitiveResponse(w, a);
+    }
   }
 
   /* --------------------------------------------------------------------------
@@ -845,7 +894,7 @@ If someone speaks to you, your thought must answer them in your own words. Never
 
       const statusTxt = AI.pending
         ? (AI.godPending || AI.godMessage ? 'hearing the divine voice, thinking...' : 'thinking...')
-        : (AI.errorUntil > w.tick ? 'reconnecting...' : 'active');
+        : (AI.mode ? `${AI.mode} (Active)` : 'Online Autonomous Mind (Active)');
       const thought = AI.lastThought
         ? `<div class="sub" style="font-style:italic;margin-top:6px">"${AI.lastThought.slice(0, 180)}${AI.lastThought.length > 180 ? '…' : ''}"</div>`
         : '<div class="sub muted">No thoughts yet.</div>';

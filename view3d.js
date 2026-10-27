@@ -46,7 +46,25 @@
 
   // ------------------------------------------------------------------ geometry & material helpers
   const mats = {};
-  function mat(c, o) { const k = c + (o ? JSON.stringify(o) : ''); return mats[k] || (mats[k] = new T.MeshLambertMaterial(Object.assign({ color: c }, o))); }
+  let toonRamp = null;
+  function getToonRamp() {
+    if (toonRamp) return toonRamp;
+    const c = document.createElement('canvas');
+    c.width = 4; c.height = 1;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#687280'; ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = '#9ca3af'; ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = '#d1d5db'; ctx.fillRect(2, 0, 1, 1);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(3, 0, 1, 1);
+    toonRamp = new T.CanvasTexture(c);
+    toonRamp.minFilter = T.NearestFilter;
+    toonRamp.magFilter = T.NearestFilter;
+    return toonRamp;
+  }
+  function mat(c, o) {
+    const k = c + (o ? JSON.stringify(o) : '');
+    return mats[k] || (mats[k] = new T.MeshToonMaterial(Object.assign({ color: c, gradientMap: getToonRamp() }, o)));
+  }
   const basic = {};
   function bmat(c, o) { const k = c + (o ? JSON.stringify(o) : ''); return basic[k] || (basic[k] = new T.MeshBasicMaterial(Object.assign({ color: c }, o))); }
   const G = {
@@ -137,7 +155,7 @@
     geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
     geo.setAttribute('color', new T.Float32BufferAttribute(col, 3));
     geo.computeVertexNormals();
-    terrainMesh = new T.Mesh(geo, new T.MeshLambertMaterial({ vertexColors: true }));
+    terrainMesh = new T.Mesh(geo, new T.MeshToonMaterial({ vertexColors: true, gradientMap: getToonRamp() }));
     terrainMesh.receiveShadow = true; terrainGroup.add(terrainMesh);
 
     // skirt around the diorama
@@ -156,14 +174,14 @@
     }
     const sg = new T.BufferGeometry();
     sg.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); sg.setAttribute('color', new T.Float32BufferAttribute(sc, 3)); sg.computeVertexNormals();
-    terrainGroup.add(new T.Mesh(sg, new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide })));
+    terrainGroup.add(new T.Mesh(sg, new T.MeshToonMaterial({ vertexColors: true, side: T.DoubleSide, gradientMap: getToonRamp() })));
 
     // water
     waterMesh = null;
     if (waterTiles.length) {
       const wg = new T.BufferGeometry();
       wg.setAttribute('position', new T.BufferAttribute(new Float32Array(waterTiles.length * 18), 3));
-      waterMesh = new T.Mesh(wg, new T.MeshPhongMaterial({ color: season === 'Winter' ? 0xbfe0ee : 0x3f86c4, specular: 0xaaccee, shininess: 70, transparent: true, opacity: season === 'Winter' ? 0.92 : 0.8 }));
+      waterMesh = new T.Mesh(wg, new T.MeshPhongMaterial({ color: season === 'Winter' ? 0xcbe9f5 : 0x247ec7, specular: 0xffffff, shininess: 95, transparent: true, opacity: season === 'Winter' ? 0.94 : 0.82 }));
       waterMesh.receiveShadow = true; terrainGroup.add(waterMesh);
       animWater(0);
     }

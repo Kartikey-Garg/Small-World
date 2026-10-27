@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Small World</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="top">
+  <div class="brand">SMALL WORLD</div>
+  <div class="stat"><span class="k">Day</span><span class="v" id="s-day">0</span></div>
+  <div class="stat"><span class="k">Season</span><span class="v" id="s-season">Spring</span></div>
+  <div class="stat"><span class="k">Time</span><span class="v" id="s-time">06:00</span></div>
+  <div class="stat"><span class="k">Population</span><span class="v" id="s-pop">0</span></div>
+  <div class="stat"><span class="k">Food</span><span class="v" id="s-food">0</span></div>
+  <div class="stat"><span class="k">Wood</span><span class="v" id="s-wood">0</span></div>
+  <div class="stat"><span class="k">Fish in lake</span><span class="v" id="s-fish">0</span></div>
+  <div class="stat"><span class="k">Best run</span><span class="v" id="s-best">0 d</span></div>
+  <span id="hud-extra" class="hudx"></span>
+  <div class="spacer"></div>
+  <div class="controls" id="vbar">
+    <button id="b-view" title="Switch between 3D and 2D">View: 3D</button>
+    <button id="b-reset" class="v3" title="Reset camera">Reset cam</button>
+    <button id="b-follow" class="v3" title="Camera follows selected villager (or double-click one)">Follow</button>
+    <span class="sepv"></span>
+    <button id="b-pause" title="Space">Pause</button>
+    <button class="spd" data-s="1">1x</button>
+    <button class="spd" data-s="3">3x</button>
+    <button class="spd" data-s="8">8x</button>
+    <button class="spd" data-s="25">25x</button>
+    <button class="spd" data-s="80">80x</button>
+    <button id="b-new" title="Start a new random world">New world</button>
+  </div>
+</header>
+
+<main>
+  <section id="stage">
+    <canvas id="cv"></canvas>
+    <div id="banner"></div>
+    <div id="over" class="hidden">
+      <div class="card">
+        <h1>The village has fallen</h1>
+        <p id="over-days"></p>
+        <p id="over-sub"></p>
+        <div id="over-stats"></div>
+        <button id="b-again">Try again</button>
+      </div>
+    </div>
+  </section>
+
+  <aside id="side">
+    <div class="panel" id="sel">
+      <h2>Villager</h2>
+      <div id="sel-body" class="muted">Click a villager on the map or in the list.</div>
+    </div>
+    <div class="panel">
+      <h2>Population over time</h2>
+      <canvas id="chart" width="320" height="90"></canvas>
+      <div class="legend"><i style="background:#6cc6ff"></i>people <i style="background:#e8b84a"></i>food <i style="background:#9a6b3a"></i>wood</div>
+    </div>
+    <div class="panel">
+      <h2>Jobs</h2>
+      <div id="jobs"></div>
+    </div>
+    <div id="panels"></div>
+    <div class="panel grow">
+      <h2>Villagers <span id="vcount" class="muted"></span></h2>
+      <div id="vlist"></div>
+    </div>
+    <div class="panel grow">
+      <h2>Chronicle</h2>
+      <div id="log"></div>
+    </div>
+  </aside>
+</main>
+
+<script src="lib/three.min.js"></script>
+<script src="sim.js"></script>
+<!-- feature mods: keep this list in sync with mods/load.js -->
+<script src="mods/skills.js"></script>
+<script src="mods/mood.js"></script>
+<script src="mods/family.js"></script>
+<script src="mods/relations.js"></script>
+<script src="mods/tools.js"></script>
+<script src="mods/jobs.js"></script>
+<script src="mods/market.js"></script>
+<script src="mods/wells.js"></script>
+<script src="mods/soil.js"></script>
+<script src="mods/fire.js"></script>
+<script src="mods/disasters.js"></script>
+<script src="mods/injury.js"></script>
+<script src="mods/governance.js"></script>
+<script src="mods/defense.js"></script>
+<script src="mods/crime.js"></script>
+<script src="mods/god.js"></script>
+<script src="mods/history.js"></script>
+<script src="view3d.js"></script>
+<script src="mods/personality.js"></script>
+<script src="mods/goals.js"></script>
+<script src="mods/eras.js"></script>
+<script src="mods/buildings3d.js"></script>
+<script src="mods/civilization.js"></script>
+<script src="mods/recorder.js"></script>
+<script src="mods/ai_leader.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
+
+
+
+
+

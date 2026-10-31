@@ -14,30 +14,25 @@
       if (r.left) return `<span style="color:#ff9d8f">left day ${r.left.day}</span>`;
       return '';
     };
-    const label = r => `<b>${r.name}</b> <span class="muted">${r.gender === 'M' ? 'm' : 'f'}, ${r.born < 0 ? 'founder' : 'b. day ' + r.born}</span> ${status(r)}`;
-    function node(id, depth) {
+    const label = r => `<div class="family-node-core"><div class="family-name">${r.name}</div><div class="family-meta">${r.gender === 'M' ? 'man' : 'woman'} · ${r.born < 0 ? 'founder' : 'b. ' + r.born} ${status(r)}</div></div>`;
+    function node(id) {
       const r = R[id]; if (!r || seen.has(id)) return '';
       if (lines >= MAX_LINES) { cut = true; return ''; }
       seen.add(id); lines++;
-      let sp = '';
       const s = r.spouse != null ? R[r.spouse] : (r.lastSpouse != null ? R[r.lastSpouse] : null);
-      if (s) {
-        if (!seen.has(s.id) && !(s.parents && s.parents.length && R[s.parents[0]])) { seen.add(s.id); sp = ` &amp; ${label(s)}`; }
-        else sp = ` &amp; <span class="muted">${s.name}</span>`;
-      }
-      const kids = [...new Set([...(r.kids || []), ...(s ? s.kids || [] : [])])];
-      const inner = kids.map(k => node(k, depth + 1)).join('');
-      return `<div style="margin-left:${depth ? 16 : 0}px;padding:1px 0;${depth ? 'border-left:1px solid #2c333d;padding-left:6px' : ''}">${label(r)}${sp}${inner}</div>`;
+      const spouseHtml = s ? `<div class="family-spouse">&amp; ${s.name}</div>` : '';
+      const kids = [...new Set([...(r.kids || [])])];
+      const childHtml = kids.length ? `<div class="family-children">${kids.map(k => node(k)).filter(Boolean).join('')}</div>` : '';
+      const combined = `<div class="family-node-wrap">${label(r)}${spouseHtml}${childHtml}</div>`;
+      return combined;
     }
     const roots = Object.values(R).filter(r => !(r.parents && r.parents.length && r.parents.some(p => R[p])));
-    let html = roots.map(r => (seen.has(r.id) ? '' : '<div style="margin:6px 0 10px">' + node(r.id, 0) + '</div>')).join('');
-    // anyone whose parents exist but were never reached (e.g. married-in descendants)
-    for (const r of Object.values(R)) if (!seen.has(r.id) && lines < MAX_LINES) html += '<div style="margin:4px 0">' + node(r.id, 0) + '</div>';
+    let html = roots.map(r => (seen.has(r.id) ? '' : `<div class="family-root">${node(r.id)}</div>`)).join('');
+    for (const r of Object.values(R)) if (!seen.has(r.id) && lines < MAX_LINES) html += `<div class="family-root">${node(r.id)}</div>`;
     const total = Object.keys(R).length;
-    return `<h2>Family tree - ${total} people over ${w.day} days</h2><div class="tl" style="max-height:520px;min-width:520px">${html}${cut ? '<div class="muted">... tree truncated</div>' : ''}</div>`;
+    return `<h2>Family tree - ${total} people over ${w.day} days</h2><div class="family-tree-wrap"><div class="family-tree">${html}${cut ? '<div class="muted">... tree truncated</div>' : ''}</div></div>`;
   }
 
-  // ------------------------------------------------------------------ timeline
   function chartSvg(w) {
     const H = w.history; if (H.length < 2) return '';
     const Wd = 620, Ht = 130, pad = 22, n = H.length, mx = Math.max(10, ...H.map(p => p.pop));

@@ -1,14 +1,14 @@
 /* ==========================================================================
    SMALL WORLD - Council Dilemmas & Policy Decrees
-   Presents moral & economic choice cards (Frostpunk/Reigns style) with trade-offs.
-   Auto-resolves during fast simulation or headless testing to prevent blocking.
+   Auto-resolves during fast simulation or headless testing so the sim stays
+   stable while still exposing the current council issue in the sidebar.
    ========================================================================== */
 (function () {
   'use strict';
   const api = typeof module !== 'undefined' && module.exports ? require('../sim.js') : window.SmallWorld;
-  const { clamp, hash01 } = api.util;
+  const { hash01 } = api.util;
 
-  const S = w => w.m.dilemmas || (w.m.dilemmas = { active: null, lastDay: -99, resolvedCount: 0 });
+  const S = w => w.m.dilemmas || (w.m.dilemmas = { active: null, lastDay: -99, resolvedCount: 0, recent: [] });
 
   const DILEMMA_POOL = [
     {
@@ -130,57 +130,62 @@
     }
   ];
 
-  function showDilemmaModal(w, dilemma) {
-    if (typeof document === 'undefined') return;
-    let modal = document.getElementById('dilemma-modal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'dilemma-modal';
-      modal.className = 'dilemma-overlay';
-      document.body.appendChild(modal);
-    }
-
-    const optionsHtml = dilemma.options.map((opt, i) => `
-      <button class="dilemma-btn" data-idx="${i}">
-        <strong>${opt.label}</strong>
-        <span class="dilemma-desc">${opt.desc}</span>
-      </button>
-    `).join('');
-
-    modal.innerHTML = `
-      <div class="dilemma-card">
-        <div class="dilemma-header">
-          <span class="dilemma-badge">Council Dilemma</span>
-          <h3>${dilemma.title}</h3>
-        </div>
-        <p class="dilemma-text">${dilemma.text}</p>
-        <div class="dilemma-options">${optionsHtml}</div>
-      </div>
-    `;
-    modal.style.display = 'flex';
-
-    modal.querySelectorAll('.dilemma-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = +btn.getAttribute('data-idx');
-        resolveDilemma(w, dilemma, idx);
-        modal.style.display = 'none';
-      });
-    });
-  }
-
   function resolveDilemma(w, dilemma, optIdx) {
     const s = S(w);
     const opt = dilemma.options[optIdx] || dilemma.options[0];
     opt.effect(w);
+    api.recordRecentDecision(w, {
+      title: dilemma.title,
+      choice: opt.label,
+      summary: opt.desc,
+      consequence: opt.label,
+    });
     s.active = null;
     s.resolvedCount++;
     s.lastDay = w.day;
   }
 
+  api.actions.resolveDilemmaChoice = (w, arg) => {
+    const s = S(w);
+    if (!s.active || !s.active.options) return;
+    const idx = Number(arg);
+    if (Number.isFinite(idx) && idx >= 0 && idx < s.active.options.length) {
+      resolveDilemma(w, s.active, idx);
+    }
+  };
+
+  api.panels.push({
+    id: 'dilemma-watch',
+    title: 'Council Watch',
+    html(w) {
+      const s = S(w);
+      const recent = api.getRecentDecisions(w);
+      const active = s.active ? `
+        <div class="dilemma-inline">
+          <div class="sub"><b>Active dilemma:</b> ${s.active.title}</div>
+          <div class="dilemma-text">${s.active.text}</div>
+          <div class="dilemma-options">${s.active.options.map((opt, i) => `
+            <button class="dilemma-btn" data-act="resolveDilemmaChoice" data-arg="${i}">
+              <strong>${opt.label}</strong>
+              <span class="dilemma-desc">${opt.desc}</span>
+            </button>
+          `).join('')}</div>
+        </div>
+      ` : '<div class="sub">No active dilemma</div>';
+      const list = recent.length ? recent.map(d => `
+        <div class="decision-item">
+          <div class="decision-head"><span class="chip">D${d.day}</span><strong>${d.title}</strong></div>
+          <div class="decision-choice">${d.choice}</div>
+          <div class="decision-summary">${d.summary || 'No additional note.'}</div>
+        </div>
+      `).join('') : '<div class="muted">The council has not made a ruling yet.</div>';
+      return active + `<div class="decision-list">${list}</div>`;
+    },
+  });
+
   api.mods.push({
     day(w) {
       const s = S(w);
-      // Trigger every 12 to 16 days
       if (w.day - s.lastDay < 12) return;
 
       const candidates = DILEMMA_POOL.filter(d => !d.condition || d.condition(w));
@@ -188,18 +193,13 @@
 
       const idx = Math.floor(hash01(w.seed, 'dilemma', w.day) * candidates.length);
       const chosen = candidates[idx];
-
       s.active = chosen;
       s.lastDay = w.day;
 
-      // In browser at human play speeds (1x or 3x and not headless) show interactive modal
       const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
       const isFast = typeof window !== 'undefined' && window.SmallWorldSpeed && window.SmallWorldSpeed > 3;
 
-      if (isBrowser && !isFast) {
-        showDilemmaModal(w, chosen);
-      } else {
-        // Auto-resolve via council preference to prevent test blockage
+      if (!isBrowser || isFast) {
         const autoChoice = Math.floor(hash01(w.seed, 'choice', w.day) * chosen.options.length);
         resolveDilemma(w, chosen, autoChoice);
       }

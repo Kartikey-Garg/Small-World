@@ -532,41 +532,45 @@ If someone speaks to you, your thought must answer them in your own words. Never
 
   function generateAutonomousCognitiveResponse(w, a) {
     const AI = w.m.ai;
-    let thought = '';
-    let action = 'wander';
-
     if (AI.godMessage) {
-      thought = `I hear the divine whisper: "${AI.godMessage}". We shall heed this guidance and gather our people.`;
-      action = 'speak';
+      const msg = AI.godMessage;
       AI.godMessage = '';
-      return `${thought}\n[action: ${action}]`;
+      return `${a.name} hears the call: "${msg}". I will respond by gathering the village and addressing the concern directly.\n[action: speak]`;
     }
 
-    if (w.season === 'Winter' && (w.stock.wood || 0) < 25) {
-      const cutter = w.agents.find(o => o.alive && o.job === 'woodcutter');
-      thought = `The winter frost bites deep and our firewood is perilously low. I must chop timber and urge ${cutter ? cutter.name : 'the workers'} to woodcut before our hearths go cold.`;
-      action = 'chop_wood';
-    } else if (w.stock.food < 12 && w.stock.bread < 4) {
-      const farmer = w.agents.find(o => o.alive && (o.job === 'farmer' || o.job === 'fisher'));
-      thought = `Our food stores are dangerously meager. I will harvest from the fields and urge ${farmer ? farmer.name : 'the workers'} to fish.`;
-      action = 'farm';
-    } else if (w.m.dis && (w.m.dis.storm || w.m.dis.wolves)) {
-      thought = `Danger threatens our settlement! I will patrol the stockade and ensure everyone remains vigilant.`;
-      action = 'patrol';
-    } else {
-      const eraState = api.eras && api.eras.state(w);
-      const eraName = eraState ? api.eras.current(w).name : 'our current era';
-      const other = nearestOther(w, a);
-      const options = [
-        `Our village thrives in the ${eraName}. I will inspect our buildings and consult with ${other ? other.name : 'the council'}. [action: speak]`,
-        `The community is growing well. I will help gather timber to expand our homes. [action: chop_wood]`,
-        `Knowledge is advancing steadily. I will walk through the settlement and reflect on our civilization's next milestone. [action: wander]`,
-        `I must check in on ${other ? other.name : 'our settlers'} and ensure their spirits remain high. [action: speak]`
-      ];
-      return options[Math.floor(Math.random() * options.length)];
+    const foodStock = Math.floor(w.foodEq());
+    const woodStock = Math.floor(w.stock.wood || 0);
+    const villageSize = w.agents.length;
+    const needs = w.hookFirst('needs', a) || null;
+    const lowMood = w.agents.filter(o => o !== a && o.mood < 35).length;
+
+    if (w.season === 'Winter' && woodStock < 18) {
+      return `${a.name} sees the fires thinning and the cold increasing. We need more wood before the night deepens.\n[action: chop_wood]`;
     }
 
-    return `${thought}\n[action: ${action}]`;
+    if (foodStock < villageSize * 8) {
+      return `${a.name} notes that reserves are too low for ${villageSize} people. We should prioritize food gathering and rationing.\n[action: farm]`;
+    }
+
+    if (w.m.dis && (w.m.dis.storm || w.m.dis.wolves || w.m.dis.raiders)) {
+      return `${a.name} senses immediate danger at the edge of the settlement. I will keep watch and protect the village.\n[action: patrol]`;
+    }
+
+    if (a.satiety < 35 || a.energy < 30) {
+      return `${a.name} is physically strained and must restore strength before deciding anything else.\n[action: eat]`;
+    }
+
+    if (lowMood >= 2) {
+      return `${a.name} notices several villagers losing morale. I should speak to them and steady the settlement.\n[action: speak]`;
+    }
+
+    if (needs && Array.isArray(needs) && needs.length) {
+      return `${a.name} sees a clear material need in the village. I will direct our labor to that urgent task.\n[action: build]`;
+    }
+
+    const eraState = api.eras && api.eras.state(w);
+    const eraName = eraState ? api.eras.current(w).name : 'this age';
+    return `${a.name} reviews the settlement in the ${eraName}: the people are stable, the work is steady, and the village needs calm leadership.\n[action: wander]`;
   }
 
   /* --------------------------------------------------------------------------

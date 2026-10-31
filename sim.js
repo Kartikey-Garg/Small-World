@@ -78,6 +78,23 @@
     panels: [], actions: {}, overHtml: [],
     util: { clamp, nearestTo, mv, mulberry32, hash01 },
     consts: { W, H, DAY, SEASONS, SEASON_DAYS, YEAR, ADULT_AGE, HOUSE_CAP, HOUSE_COST, FISH_MAX },
+    recordRecentDecision(w, meta) {
+      if (!w || !w.m) return null;
+      const state = w.m.dilemmas || (w.m.dilemmas = { active: null, lastDay: -99, resolvedCount: 0, recent: [] });
+      const entry = {
+        day: w.day,
+        title: (meta && meta.title) || 'Council Decision',
+        choice: (meta && meta.choice) || 'Unknown decision',
+        summary: (meta && meta.summary) || '',
+        consequence: (meta && meta.consequence) || '',
+      };
+      state.recent = [entry].concat((state.recent || []).slice(0, 7));
+      state.lastResolved = entry;
+      return entry;
+    },
+    getRecentDecisions(w) {
+      return (!w || !w.m || !w.m.dilemmas) ? [] : (w.m.dilemmas.recent || []).slice(0, 8);
+    },
   };
 
   // ====================================================================== World

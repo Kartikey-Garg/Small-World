@@ -254,6 +254,7 @@
     const p = agentPos(a, alpha);
     const cx = gx(p.x), cy = gy(p.y), u = ts / 20 * (a.age < 12 ? 0.75 : 1);
     const bob = a.sleeping ? 0 : Math.sin((world.tick + a.id * 7) * 0.9) * 0.8 * (Math.hypot(a.x - a.px, a.y - a.py) > 0.01 ? 1 : 0);
+    const showFace = ts >= 13 || a.id === selId;
     // shadow
     ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(cx, cy + 3 * u, 5 * u, 2 * u, 0, 0, 7); ctx.fill();
     if (a.sleeping) {
@@ -268,6 +269,25 @@
       ctx.fillStyle = HAIR[a.hair]; ctx.beginPath(); ctx.arc(cx, cy - 9.3 * u + bob, 3 * u, Math.PI, 0); ctx.fill();
       if (a.gender === 'F') ctx.fillRect(cx - 3 * u, cy - 9.3 * u + bob, 1.2 * u, 4 * u);
       if (a.carry) { ctx.fillStyle = a.carry.type === 'wood' ? '#8a5a2b' : '#e8b84a'; ctx.fillRect(cx + 3 * u, cy - 4 * u + bob, 3.5 * u, 3.5 * u); }
+      if (showFace) {
+        const faceY = cy - 8.5 * u + bob;
+        ctx.strokeStyle = '#1b1f24'; ctx.lineWidth = Math.max(1, 0.8 * u);
+        const eyeY = faceY - 0.25 * u;
+        const eyeOffset = 1.1 * u;
+        if (a.mood > 60 && a.satiety > 25) {
+          ctx.beginPath(); ctx.arc(cx - eyeOffset, eyeY, 0.45 * u, 0, 7); ctx.arc(cx + eyeOffset, eyeY, 0.45 * u, 0, 7); ctx.fillStyle = '#1b1f24'; ctx.fill();
+          ctx.beginPath(); ctx.arc(cx, faceY + 0.85 * u, 1.3 * u, 0, Math.PI, false); ctx.stroke();
+        } else if (a.mood < 30 || a.sick > 0) {
+          ctx.beginPath(); ctx.moveTo(cx - eyeOffset, eyeY - 0.4 * u); ctx.lineTo(cx - eyeOffset + 0.3 * u, eyeY - 0.7 * u); ctx.moveTo(cx + eyeOffset, eyeY - 0.4 * u); ctx.lineTo(cx + eyeOffset - 0.3 * u, eyeY - 0.7 * u); ctx.stroke();
+          ctx.beginPath(); ctx.arc(cx, faceY + 1.1 * u, 1.2 * u, Math.PI, 2 * Math.PI, false); ctx.stroke();
+        } else {
+          ctx.beginPath(); ctx.arc(cx - eyeOffset, eyeY, 0.42 * u, 0, 7); ctx.arc(cx + eyeOffset, eyeY, 0.42 * u, 0, 7); ctx.fillStyle = '#1b1f24'; ctx.fill();
+          ctx.beginPath(); ctx.moveTo(cx - 0.8 * u, faceY + 1.1 * u); ctx.quadraticCurveTo(cx, faceY + 1.7 * u, cx + 0.8 * u, faceY + 1.1 * u); ctx.stroke();
+        }
+        if (a.health < 35) {
+          ctx.strokeStyle = '#c96e6e'; ctx.beginPath(); ctx.moveTo(cx - 1.2 * u, faceY + 2.7 * u); ctx.lineTo(cx + 1.2 * u, faceY + 2.7 * u); ctx.stroke();
+        }
+      }
     }
     // status icons
     let icon = null;

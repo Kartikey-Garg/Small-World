@@ -33,6 +33,7 @@ for (const e of API.events) {
     console.log('event', e.id.padEnd(12), r === false ? 'refused' : 'ok', ' pop', w.agents.length);
   } catch (err) { console.log('CRASH event', e.id, err.stack); bad++; }
 }
+if (typeof API.recordRecentDecision !== 'function') { console.log('dilemmas: recent decision recorder missing'); bad++; }
 // determinism + neutrality: same seed twice is identical; the passive recorder must not change a run;
 // the freedom mods (personality/goals) must be switchable off without a trace
 function sig(opts, d) {
